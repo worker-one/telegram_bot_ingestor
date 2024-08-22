@@ -1,4 +1,2 @@
-telegram_bot:
-  token : "YOUR_BOT_TOKEN"
-application:
-  parameter: "value"
+google_sheets:
+  sheet_name: "shoes"

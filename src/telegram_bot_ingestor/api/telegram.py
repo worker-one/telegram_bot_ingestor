@@ -6,6 +6,7 @@ from dotenv import load_dotenv, find_dotenv
 from omegaconf import OmegaConf
 
 from telegram_bot_ingestor.service.yandex_disk import YandexDisk
+from telegram_bot_ingestor.service.google_sheets import GoogleSheets
 from telegram_bot_ingestor.db.database import log_message, add_user
 
 # Load logging configuration with OmegaConf
@@ -33,9 +34,14 @@ BASE_URL = f"https://api.telegram.org/file/bot{BOT_TOKEN}/"
 
 cfg = OmegaConf.load("./src/telegram_bot_ingestor/conf/config.yaml")
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode=None)
-yandex_disk = YandexDisk(YANDEX_API_TOKEN)
 
-@bot.message_handler(content_types=['text', 'document'])
+yandex_disk = YandexDisk(YANDEX_API_TOKEN)
+google_sheets = GoogleSheets()
+
+google_sheets.set_sheet(config.google_sheets.sheet_name)
+table_names = google_sheets.get_table_names()
+
+@bot.message_handler(content_types=['text', 'document', 'photo'])
 def process_user_input(message):
     username = message.from_user.username
 
@@ -47,12 +53,6 @@ def process_user_input(message):
     elif message.content_type == 'photo':
         # Get the highest resolution photo
         file_id = message.photo[-1].file_id
-    elif message.content_type == 'audio':
-        file_id = message.audio.file_id
-    elif message.content_type == 'video':
-        file_id = message.video.file_id
-    elif message.content_type == 'voice':
-        file_id = message.voice.file_id
 
     # If file_id was determined, get the file path
     if file_id:
@@ -62,8 +62,10 @@ def process_user_input(message):
         # Construct the full URL
         file_url = BASE_URL + file_path
 
-        response = yandex_disk.upload_file(file_path, file_url)
-        print(response)
+        response = yandex_disk.upload_file(file_path.split('/')[-1], file_url)
+        if response.status_code == 202:
+            response_json = response.json()
+            bot.send_message(message.chat.id, f"Файл загружен: {response_json['href']}")
 
     try:
         if user_input_text is None:

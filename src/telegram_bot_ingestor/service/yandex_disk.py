@@ -11,7 +11,7 @@ class YandexDisk:
         else:
             self.token = token
       
-    def upload_file(self, file_path: str, url: str) -> dict[str, str]:
+    def upload_file(self, file_path: str, url: str):
       base_url = "https://cloud-api.yandex.net/v1/disk/resources/upload"
       params = {
           "path": file_path,
@@ -25,4 +25,4 @@ class YandexDisk:
 
       response = requests.post(base_url, headers=headers, params=params)
 
-      return response.json()
+      return response
