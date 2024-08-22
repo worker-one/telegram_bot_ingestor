@@ -5,8 +5,8 @@ import logging.config
 from dotenv import load_dotenv, find_dotenv
 from omegaconf import OmegaConf
 
-from telegram_bot_ingestor.service.yandex_disk import YandexDisk
 from telegram_bot_ingestor.service.google_sheets import GoogleSheets
+from telegram_bot_ingestor.service.yandex_disk import YandexDisk
 from telegram_bot_ingestor.db.database import log_message, add_user
 
 # Load logging configuration with OmegaConf
