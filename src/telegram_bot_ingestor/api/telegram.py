@@ -18,6 +18,8 @@ logging.config.dictConfig(logging_config)
 # Configure logging
 logger = logging.getLogger(__name__)
 
+config = OmegaConf.load("src/telegram_bot_ingestor/conf/config.yaml")
+
 load_dotenv(find_dotenv(usecwd=True))  # Load environment variables from .env file
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 YANDEX_API_TOKEN = os.getenv("YANDEX_API_TOKEN")
@@ -40,6 +42,18 @@ google_sheets = GoogleSheets()
 
 google_sheets.set_sheet(config.google_sheets.sheet_name)
 table_names = google_sheets.get_table_names()
+
+
+@bot.message_handler(commands=['tables'])
+def get_table_list(message):
+    table_names = google_sheets.get_table_names()
+    if table_names:
+        for table_name in table_names:
+            table_columns = google_sheets.get_header(table_name)
+            bot.send_message(message.chat.id, f"{table_name}:\n -{'\n-'.join(table_columns)}")
+    else:
+        bot.send_message(message.chat.id, "Таблиц не найдено")
+
 
 @bot.message_handler(content_types=['text', 'document', 'photo'])
 def process_user_input(message):
@@ -76,6 +90,7 @@ def process_user_input(message):
     logger.info(f"User input text: {user_input_text}")
     logger.info(f"Document type: {message.content_type}")
     logger.info(f"User input image path: {file_id}")
+
 
 
 def start_bot():

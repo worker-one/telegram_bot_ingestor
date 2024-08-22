@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import Any, List
 
 import gspread
 import pandas as pd
