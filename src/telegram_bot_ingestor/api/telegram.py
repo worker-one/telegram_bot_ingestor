@@ -101,8 +101,11 @@ def process_user_input(message):
         column_names = google_sheets.get_header("running_shoes")
         response = llm.run(user_input_text, column_names)
         response_json = extract_json_from_text(response)
-        bot.send_message(message.chat.id, response_json)
-        logger.info(f"Response from LLM: {response}")
+        
+        if isinstance(response_json, dict):
+            bot.send_message(message.chat.id, str(response_json))
+            google_sheets.add_row("running_shoes", list(response_json.values()))
+        
 
     logger.info(f"User input text: {user_input_text}")
     logger.info(f"Document type: {message.content_type}")
