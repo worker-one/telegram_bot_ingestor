@@ -1,16 +1,20 @@
-import os
-import telebot
-import logging
 import logging.config
-from dotenv import load_dotenv, find_dotenv
+import os
+
+import telebot
+from dotenv import find_dotenv, load_dotenv
 from omegaconf import OmegaConf
 
+from telegram_bot_ingestor.service.fireworksai import FireworksLLM
 from telegram_bot_ingestor.service.google_sheets import GoogleSheets
+from telegram_bot_ingestor.service.utils import extract_json_from_text
 from telegram_bot_ingestor.service.yandex_disk import YandexDisk
-from telegram_bot_ingestor.db.database import log_message, add_user
 
 # Load logging configuration with OmegaConf
-logging_config = OmegaConf.to_container(OmegaConf.load("./src/telegram_bot_ingestor/conf/logging_config.yaml"), resolve=True)
+logging_config = OmegaConf.to_container(
+    OmegaConf.load("./src/telegram_bot_ingestor/conf/logging_config.yaml"),
+    resolve=True
+)
 
 # Apply the logging configuration
 logging.config.dictConfig(logging_config)
@@ -40,6 +44,12 @@ bot = telebot.TeleBot(BOT_TOKEN, parse_mode=None)
 yandex_disk = YandexDisk(YANDEX_API_TOKEN)
 google_sheets = GoogleSheets()
 
+if cfg.llm.provider == "fireworks":
+    llm = FireworksLLM(cfg.llm.model_name, cfg.llm.prompt_template)
+else:
+    logger.error("Invalid LLM provider in the configuration file.")
+    exit(1)
+
 google_sheets.set_sheet(config.google_sheets.sheet_name)
 table_names = google_sheets.get_table_names()
 
@@ -50,7 +60,8 @@ def get_table_list(message):
     if table_names:
         for table_name in table_names:
             table_columns = google_sheets.get_header(table_name)
-            bot.send_message(message.chat.id, f"{table_name}:\n -{'\n-'.join(table_columns)}")
+            table_columns_str = "\n-".join(table_columns)
+            bot.send_message(message.chat.id, f"{table_name}:\n -{table_columns_str}")
     else:
         bot.send_message(message.chat.id, "Таблиц не найдено")
 
@@ -82,14 +93,21 @@ def process_user_input(message):
             bot.send_message(message.chat.id, f"Файл загружен: {response_json['href']}")
 
     try:
-        if user_input_text is None:
-            user_input_text = message.text
+        user_input_text = message.text
     except:
         pass
+
+    if user_input_text:
+        column_names = google_sheets.get_header("running_shoes")
+        response = llm.run(user_input_text, column_names)
+        response_json = extract_json_from_text(response)
+        bot.send_message(message.chat.id, response_json)
+        logger.info(f"Response from LLM: {response}")
 
     logger.info(f"User input text: {user_input_text}")
     logger.info(f"Document type: {message.content_type}")
     logger.info(f"User input image path: {file_id}")
+
 
 
 

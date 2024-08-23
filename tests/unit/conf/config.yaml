@@ -2,7 +2,7 @@ google_sheets:
   sheet_name: "shoes"
 llm:
   prompt_template: "You are given column names of a table and a `product name`.
-  Parse `product name` according to the column names and return a valid json block. No other comments are allowed.
+  Parse `product name` according to the column names and return the parsed data in a valid csv format.
   column names {column_names}
   product name {product_name}"
   provider: "fireworks"
