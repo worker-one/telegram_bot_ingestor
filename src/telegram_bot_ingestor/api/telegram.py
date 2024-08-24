@@ -1,3 +1,4 @@
+import logging
 import logging.config
 import os
 from io import BytesIO
@@ -136,9 +137,6 @@ def process_user_input(message):
     logger.info(f"User input text: {text_content}")
     logger.info(f"Document type: {message.content_type}")
 
-@bot.message_handler(commands=['start'])
-def start_message(message):
-    bot.send_message(message.chat.id, 'Привет, ты написал мне /start')
 
 def start_bot():
     logger.info(f"bot `{str(bot.get_me().username)}` has started")
