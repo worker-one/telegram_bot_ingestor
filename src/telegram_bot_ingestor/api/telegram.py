@@ -76,18 +76,41 @@ def process_user_input(message):
 
     # Determine the type of file received
     document = None
-    image = None
-    user_input_text = None
+    file_info = None
+    text_content = None
+    file_content = None
+
+    if message.content_type == 'text':
+        text_content = message.text
+
     if message.content_type == 'document':
+        text_content = message.caption
+
         document = message.document
         file_info = bot.get_file(document.file_id)
         downloaded_file = bot.download_file(file_info.file_path)
-    elif message.content_type == 'photo':
+
+        # Extract content from the file
+        try:
+            upload_file = UploadFile(
+                filename=document.file_name,
+                file=BytesIO(downloaded_file),
+                size=len(downloaded_file),
+                headers={"content-type": document.mime_type}
+            )
+
+            file_content = file_parser.extract_content(upload_file)
+            bot.send_message(message.chat.id, f"File content: {file_content}")
+        except Exception as e:
+            bot.send_message(message.chat.id, f"Error extracting file content: {str(e)}")
+
+
+    if message.content_type == 'photo':
         # Get the highest resolution photo
-        image_id = message.photo[-1].file_id
+        file_info = bot.get_file(message.photo[-1].file_id)
 
     # If file_id was determined, get the file path
-    if document:
+    if file_info:
         # Construct the full URL
         file_url = BASE_URL + file_info.file_path
 
@@ -96,37 +119,26 @@ def process_user_input(message):
             response_json = response.json()
             bot.send_message(message.chat.id, f"Файл загружен: {response_json['href']}")
 
-            # Extract content from the file
-            try:
-                upload_file = UploadFile(
-                    filename=document.file_name,
-                    file=BytesIO(downloaded_file),
-                    size=len(downloaded_file),
-                    headers={"content-type": document.mime_type}
-                )
+    column_names = google_sheets.get_header("running_shoes")
+    response = llm.run(text_content=text_content, file_content=file_content, column_names=column_names)
+    print(response)
+    response_json = extract_json_from_text(response)
 
-                file_content = file_parser.extract_content(upload_file)
-                bot.send_message(message.chat.id, f"File content: {file_content}")
-            except Exception as e:
-                bot.send_message(message.chat.id, f"Error extracting file content: {str(e)}")
+    if isinstance(response_json, dict):
+        bot.send_message(message.chat.id, str(response_json))
+        google_sheets.add_row("running_shoes", list(response_json.values()))
 
-    try:
-        user_input_text = message.text
-    except:
-        pass
+    if isinstance(response_json, list):
+        bot.send_message(message.chat.id, str(response_json))
+        for row in response_json:
+            google_sheets.add_row("running_shoes", list(row.values()))
 
-    if user_input_text:
-        column_names = google_sheets.get_header("running_shoes")
-        response = llm.run(user_input_text, column_names)
-        response_json = extract_json_from_text(response)
-
-        if isinstance(response_json, dict):
-            bot.send_message(message.chat.id, str(response_json))
-            google_sheets.add_row("running_shoes", list(response_json.values()))
-
-    logger.info(f"User input text: {user_input_text}")
+    logger.info(f"User input text: {text_content}")
     logger.info(f"Document type: {message.content_type}")
 
+@bot.message_handler(commands=['start'])
+def start_message(message):
+    bot.send_message(message.chat.id, 'Привет, ты написал мне /start')
 
 def start_bot():
     logger.info(f"bot `{str(bot.get_me().username)}` has started")

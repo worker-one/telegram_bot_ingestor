@@ -31,8 +31,9 @@ class FireworksLLM:
     def run(
             self,
             text_content: str,
-            file_content: str,
-            column_names: list[str]):
+            column_names: list[str],
+            file_content: str = None
+    ):
         """Run the LLM model with the given query and document."""
         completion = self.client.ChatCompletion.create(
             model=self.model_name,
@@ -46,8 +47,8 @@ class FireworksLLM:
                     )
                 }
             ],
-            max_tokens=500,
-            temperature=0.5,
+            max_tokens=100,
+            temperature=0.2,
             presence_penalty=0,
             frequency_penalty=0,
             top_p=1,
