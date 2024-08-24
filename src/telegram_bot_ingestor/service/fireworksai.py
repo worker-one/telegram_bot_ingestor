@@ -28,7 +28,11 @@ class FireworksLLM:
         fireworks.client.api_key = API_KEY
         self.prompt_template = prompt_template
 
-    def run(self, product_name: str, column_names: list[str]):
+    def run(
+            self,
+            text_content: str,
+            file_content: str,
+            column_names: list[str]):
         """Run the LLM model with the given query and document."""
         completion = self.client.ChatCompletion.create(
             model=self.model_name,
@@ -36,7 +40,8 @@ class FireworksLLM:
                 {
                     "role": "user",
                     "content": self.prompt_template.format(
-                        product_name=product_name,
+                        text_content=text_content,
+                        file_content=file_content,
                         column_names=','.join(column_names)
                     )
                 }

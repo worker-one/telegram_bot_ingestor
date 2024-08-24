@@ -1,10 +1,13 @@
 import logging.config
 import os
+from io import BytesIO
 
 import telebot
 from dotenv import find_dotenv, load_dotenv
+from fastapi import UploadFile
 from omegaconf import OmegaConf
 
+from telegram_bot_ingestor.service.file_parser import FileParser
 from telegram_bot_ingestor.service.fireworksai import FireworksLLM
 from telegram_bot_ingestor.service.google_sheets import GoogleSheets
 from telegram_bot_ingestor.service.utils import extract_json_from_text
@@ -43,6 +46,7 @@ bot = telebot.TeleBot(BOT_TOKEN, parse_mode=None)
 
 yandex_disk = YandexDisk(YANDEX_API_TOKEN)
 google_sheets = GoogleSheets()
+file_parser = FileParser(max_file_size_mb=10, allowed_file_types={"txt", "doc", "docx", "pdf"})
 
 if cfg.llm.provider == "fireworks":
     llm = FireworksLLM(cfg.llm.model_name, cfg.llm.prompt_template)
@@ -66,31 +70,44 @@ def get_table_list(message):
         bot.send_message(message.chat.id, "Таблиц не найдено")
 
 
-@bot.message_handler(content_types=['text', 'document', 'photo'])
 def process_user_input(message):
     username = message.from_user.username
 
     # Determine the type of file received
-    file_id = None
+    document = None
+    image = None
     user_input_text = None
     if message.content_type == 'document':
-        file_id = message.document.file_id
+        document = message.document
+        file_info = bot.get_file(document.file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
     elif message.content_type == 'photo':
         # Get the highest resolution photo
-        file_id = message.photo[-1].file_id
+        image_id = message.photo[-1].file_id
 
     # If file_id was determined, get the file path
-    if file_id:
-        file_info = bot.get_file(file_id)
-        file_path = file_info.file_path
-
+    if document:
         # Construct the full URL
-        file_url = BASE_URL + file_path
+        file_url = BASE_URL + file_info.file_path
 
-        response = yandex_disk.upload_file(file_path.split('/')[-1], file_url)
+        response = yandex_disk.upload_file(file_info.file_path.split('/')[-1], file_url)
         if response.status_code == 202:
             response_json = response.json()
             bot.send_message(message.chat.id, f"Файл загружен: {response_json['href']}")
+
+            # Extract content from the file
+            try:
+                upload_file = UploadFile(
+                    filename=document.file_name,
+                    file=BytesIO(downloaded_file),
+                    size=len(downloaded_file),
+                    headers={"content-type": document.mime_type}
+                )
+
+                file_content = file_parser.extract_content(upload_file)
+                bot.send_message(message.chat.id, f"File content: {file_content}")
+            except Exception as e:
+                bot.send_message(message.chat.id, f"Error extracting file content: {str(e)}")
 
     try:
         user_input_text = message.text
@@ -101,11 +118,10 @@ def process_user_input(message):
         column_names = google_sheets.get_header("running_shoes")
         response = llm.run(user_input_text, column_names)
         response_json = extract_json_from_text(response)
-        
+
         if isinstance(response_json, dict):
             bot.send_message(message.chat.id, str(response_json))
             google_sheets.add_row("running_shoes", list(response_json.values()))
-        
 
     logger.info(f"User input text: {user_input_text}")
     logger.info(f"Document type: {message.content_type}")

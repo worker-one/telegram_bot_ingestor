@@ -1,9 +1,11 @@
 google_sheets:
   sheet_name: "shoes"
 llm:
-  prompt_template: "You are given column names of a table and a `product name`.
-  Parse `product name` according to the column names and return a valid json block. No other comments are allowed.
+  prompt_template: "You are given column names of a table, `text_content` and optionally `file_content`.
+  Using information from `text_content` and `file_content` complete column names and return a valid json block.
+  No other comments are allowed.
   column names {column_names}
-  product name {product_name}"
+  text_content {text_content}
+  file_content {file_content}"
   provider: "fireworks"
   model_name: "accounts/fireworks/models/llama-v3-70b-instruct"

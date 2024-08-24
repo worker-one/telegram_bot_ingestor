@@ -1,0 +1,7 @@
+Shoe name	Category	Votes 	Status
+ASICS Superblast 2	Running	267	Published
+Kiprun KD900X LD	Running	198 	Suggested
+Adidas Adizero Adios Pro 4	Running	155 	Suggested
+Diadora Gara Carbon	Running	146 	Suggested
+Adidas Adizero SL2	Running	145 	Currently testing
+Under Armour Velociti Elite 2	Running	134 	Suggested

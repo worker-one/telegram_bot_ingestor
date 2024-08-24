@@ -28,7 +28,9 @@ dependencies = [
     "sqlalchemy==1.4.25",
     "psycopg2-binary",
     "python-dotenv",
-    "fix-busted-json"
+    "fix-busted-json",
+    "python-docx==1.1.2",
+    "PyPDF2==3.0.0"
 ]
 
 [project.optional-dependencies]
