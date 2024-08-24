@@ -1,9 +1,10 @@
 google_sheets:
   sheet_name: "shoes"
+  worksheet_name: "running_shoes"
 llm:
   prompt_template: "You are given column names of a table, `text_content` and optionally `file_content`.
   Using information from `text_content` and `file_content` complete column names and return a valid json document.
-  No comments and explanation are allowed.
+  No comments and explanation are allowed. As nan value use `null`.
   column names {column_names}
   text_content {text_content}
   file_content {file_content}"

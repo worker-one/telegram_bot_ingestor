@@ -1,5 +1,4 @@
 import logging
-import logging.config
 import os
 from io import BytesIO
 
@@ -11,7 +10,7 @@ from omegaconf import OmegaConf
 from telegram_bot_ingestor.service.file_parser import FileParser
 from telegram_bot_ingestor.service.fireworksai import FireworksLLM
 from telegram_bot_ingestor.service.google_sheets import GoogleSheets
-from telegram_bot_ingestor.service.utils import extract_json_from_text
+from telegram_bot_ingestor.service.utils import extract_json, extract_json_list
 from telegram_bot_ingestor.service.yandex_disk import YandexDisk
 
 # Load logging configuration with OmegaConf
@@ -57,7 +56,7 @@ else:
 
 google_sheets.set_sheet(config.google_sheets.sheet_name)
 table_names = google_sheets.get_table_names()
-
+worksheet_name = cfg.google_sheets.worksheet_name
 
 @bot.message_handler(commands=['tables'])
 def get_table_list(message):
@@ -73,10 +72,8 @@ def get_table_list(message):
 
 @bot.message_handler(content_types=['text', 'document', 'photo'])
 def process_user_input(message):
-    username = message.from_user.username
 
     # Determine the type of file received
-    document = None
     file_info = None
     text_content = None
     file_content = None
@@ -87,17 +84,18 @@ def process_user_input(message):
     if message.content_type == 'document':
         text_content = message.caption
 
-        document = message.document
-        file_info = bot.get_file(document.file_id)
+        file = message.document
+        file_info = bot.get_file(file.file_id)
+        file_name = file.file_name
         downloaded_file = bot.download_file(file_info.file_path)
 
         # Extract content from the file
         try:
             upload_file = UploadFile(
-                filename=document.file_name,
+                filename=file_name,
                 file=BytesIO(downloaded_file),
                 size=len(downloaded_file),
-                headers={"content-type": document.mime_type}
+                headers={"content-type": file.mime_type}
             )
 
             file_content = file_parser.extract_content(upload_file)
@@ -108,34 +106,42 @@ def process_user_input(message):
 
     if message.content_type == 'photo':
         # Get the highest resolution photo
+        file = message.photo[-1]
         file_info = bot.get_file(message.photo[-1].file_id)
+        file_name = file.file_id + ".jpg"
 
     # If file_id was determined, get the file path
     if file_info:
         # Construct the full URL
         file_url = BASE_URL + file_info.file_path
 
-        response = yandex_disk.upload_file(file_info.file_path.split('/')[-1], file_url)
+        response = yandex_disk.upload_file(file_name, file_url)
         if response.status_code == 202:
             response_json = response.json()
             bot.send_message(message.chat.id, f"Файл загружен: {response_json['href']}")
 
-    column_names = google_sheets.get_header("running_shoes")
-    response = llm.run(text_content=text_content, file_content=file_content, column_names=column_names)
-    print(response)
-    response_json = extract_json_from_text(response)
+    if text_content or file_content:
+        column_names = google_sheets.get_header(worksheet_name)
+        response = llm.run(text_content=text_content, file_content=file_content, column_names=column_names)
+        print(response)
+        json_data = None
+        try:
+            json_data = extract_json(response)
+        except:
+            json_data = extract_json_list(response)
 
-    if isinstance(response_json, dict):
-        bot.send_message(message.chat.id, str(response_json))
-        google_sheets.add_row("running_shoes", list(response_json.values()))
 
-    if isinstance(response_json, list):
-        bot.send_message(message.chat.id, str(response_json))
-        for row in response_json:
-            google_sheets.add_row("running_shoes", list(row.values()))
+        if isinstance(json_data, dict):
+            bot.send_message(message.chat.id, str(json_data))
+            google_sheets.add_row(worksheet_name, list(json_data.values()))
 
-    logger.info(f"User input text: {text_content}")
-    logger.info(f"Document type: {message.content_type}")
+        if isinstance(json_data, list):
+            bot.send_message(message.chat.id, str(json_data))
+            for row in json_data:
+                google_sheets.add_row(worksheet_name, list(row.values()))
+
+        logger.info(f"User input text: {text_content}")
+        logger.info(f"Document type: {message.content_type}")
 
 
 def start_bot():
