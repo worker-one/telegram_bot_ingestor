@@ -60,6 +60,7 @@ table_names = google_sheets.get_table_names()
 
 @bot.message_handler(commands=['tables'])
 def get_table_list(message):
+    """"""
     table_names = google_sheets.get_table_names()
     if table_names:
         for table_name in table_names:
@@ -69,7 +70,7 @@ def get_table_list(message):
     else:
         bot.send_message(message.chat.id, "Таблиц не найдено")
 
-
+@bot.message_handler(content_types=['text', 'document', 'photo'])
 def process_user_input(message):
     username = message.from_user.username
 
@@ -125,9 +126,6 @@ def process_user_input(message):
 
     logger.info(f"User input text: {user_input_text}")
     logger.info(f"Document type: {message.content_type}")
-    logger.info(f"User input image path: {file_id}")
-
-
 
 
 def start_bot():
