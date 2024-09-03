@@ -1,5 +1,16 @@
 import os
 import requests
+import logging.config
+from omegaconf import OmegaConf
+
+
+# Load logging configuration with OmegaConf
+logging_config = OmegaConf.to_container(
+    OmegaConf.load("./src/telegram_bot_ingestor/conf/logging_config.yaml"),
+    resolve=True
+)
+logging.config.dictConfig(logging_config)
+logger = logging.getLogger(__name__)
 
 
 class YandexDisk:

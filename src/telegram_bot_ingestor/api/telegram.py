@@ -18,11 +18,7 @@ logging_config = OmegaConf.to_container(
     OmegaConf.load("./src/telegram_bot_ingestor/conf/logging_config.yaml"),
     resolve=True
 )
-
-# Apply the logging configuration
 logging.config.dictConfig(logging_config)
-
-# Configure logging
 logger = logging.getLogger(__name__)
 
 config = OmegaConf.load("src/telegram_bot_ingestor/conf/config.yaml")
@@ -130,4 +126,4 @@ def process_user_input(message):
 
 def start_bot():
     logger.info(f"bot `{str(bot.get_me().username)}` has started")
-    bot.infinity_polling()
+    bot.polling()
