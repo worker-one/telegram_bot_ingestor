@@ -1,18 +1,12 @@
 from io import BytesIO
 from typing import Set
 
+from PyPDF2 import PdfReader
 import docx
 from fastapi import UploadFile
-from PyPDF2 import PdfReader
 
-from telegram_bot_ingestor.service.exceptions import (
-    FileTooLargeException,
-    PDFFileReadingException,
-    TextFileDecodingException,
-    UnexpectedFileReadingException,
-    UnsupportedFileTypeException,
-    WordFileReadingException,
-)
+from telegram_bot_rag.service.exceptions import TextFileDecodingException, UnexpectedFileReadingException, \
+    WordFileReadingException, FileTooLargeException, PDFFileReadingException, UnsupportedFileTypeException
 
 
 class FileParser:
@@ -38,15 +32,15 @@ class FileParser:
             UnexpectedFileReadingException: Unexpected error while reading the text file.
         """
         try:
-            content = file.read()
+            content = file.file.read()
             return content.decode("utf-8")
         except UnicodeDecodeError as e:
             raise TextFileDecodingException() from e
         except Exception as e:
             raise UnexpectedFileReadingException() from e
 
-    def extract_word_content(self, file) -> str:
-        """Extract content from a Word document.
+    def extract_word_content(self, file: UploadFile) -> str:
+	    """Extract content from a Word document.
 
         Returns:
             The content of the Word document.
@@ -54,14 +48,22 @@ class FileParser:
         Raises:
             WordFileReadingException: Error reading the Word document.
         """
-        try:
-            content = ""
-            doc = docx.Document(file.file)
-            for paragraph in doc.paragraphs:
-                content += paragraph.text + "\n"
-            return content.strip("\n")
-        except Exception as e:
-            raise WordFileReadingException() from e
+	    try:
+		    content = ""
+		    doc = docx.Document(file.file)
+		    for paragraph in doc.paragraphs:
+			    content += paragraph.text + "\n"
+
+		    # Extract content from tables
+		    for table in doc.tables:
+			    for row in table.rows:
+				    for cell in row.cells:
+					    content += cell.text + "\t"
+				    content += "\n"
+
+		    return content.strip("\n")
+	    except Exception as e:
+		    raise WordFileReadingException() from e
 
     def extract_pdf_content(self, file: UploadFile) -> str:
         """Extract content from a PDF file.
