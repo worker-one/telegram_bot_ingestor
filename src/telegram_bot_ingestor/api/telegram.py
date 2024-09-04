@@ -13,14 +13,6 @@ from telegram_bot_ingestor.service.google_sheets import GoogleSheets
 from telegram_bot_ingestor.service.utils import extract_json, extract_json_list
 from telegram_bot_ingestor.service.yandex_disk import YandexDisk
 
-# Load logging configuration with OmegaConf
-logging_config = OmegaConf.to_container(
-    OmegaConf.load("./src/telegram_bot_ingestor/conf/logging_config.yaml"),
-    resolve=True
-)
-logging.config.dictConfig(logging_config)
-logger = logging.getLogger(__name__)
-
 config = OmegaConf.load("src/telegram_bot_ingestor/conf/config.yaml")
 
 load_dotenv(find_dotenv(usecwd=True))  # Load environment variables from .env file
@@ -28,11 +20,11 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 YANDEX_API_TOKEN = os.getenv("YANDEX_API_TOKEN")
 
 if BOT_TOKEN is None:
-    logger.error("BOT_TOKEN is not set in the environment variables.")
+    logging.error("BOT_TOKEN is not set in the environment variables.")
     exit(1)
 
 if YANDEX_API_TOKEN is None:
-    logger.error("YANDEX_API_TOKEN is not set in the environment variables.")
+    logging.error("YANDEX_API_TOKEN is not set in the environment variables.")
     exit(1)
 
 BASE_URL = f"https://api.telegram.org/file/bot{BOT_TOKEN}/"
@@ -47,7 +39,7 @@ file_parser = FileParser(max_file_size_mb=10, allowed_file_types={"txt", "doc", 
 if cfg.llm.provider == "fireworks":
     llm = FireworksLLM(cfg.llm.model_name, cfg.llm.prompt_template)
 else:
-    logger.error("Invalid LLM provider in the configuration file.")
+    logging.error("Invalid LLM provider in the configuration file.")
     exit(1)
 
 google_sheets.set_sheet(config.google_sheets.sheet_name)
@@ -115,12 +107,13 @@ def process_user_input(message):
         if response.status_code == 202:
             response_json = response.json()
             bot.send_message(message.chat.id, f"Файл загружен: {response_json['href']}")
+        else:
+            bot.send_message(message.chat.id, f"Ошибка загрузки файла: {response.text}")
 
     if text_content or file_content:
         column_names = google_sheets.get_header(worksheet_name)
         response = llm.run(text_content=text_content, file_content=file_content, column_names=column_names)
         print(response)
-        json_data = None
         try:
             json_data = extract_json(response)
         except:
@@ -136,10 +129,10 @@ def process_user_input(message):
             for row in json_data:
                 google_sheets.add_row(worksheet_name, list(row.values()))
 
-        logger.info(f"User input text: {text_content}")
-        logger.info(f"Document type: {message.content_type}")
+        logging.info(f"User input text: {text_content}")
+        logging.info(f"Document type: {message.content_type}")
 
 
 def start_bot():
-    logger.info(f"bot `{str(bot.get_me().username)}` has started")
+    logging.info(f"bot `{str(bot.get_me().username)}` has started")
     bot.polling()
