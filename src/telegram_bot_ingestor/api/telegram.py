@@ -33,22 +33,44 @@ cfg = OmegaConf.load("./src/telegram_bot_ingestor/conf/config.yaml")
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode=None)
 
 yandex_disk = YandexDisk(YANDEX_API_TOKEN)
-google_sheets = GoogleSheets()
+google_sheets = GoogleSheets(share_emails=cfg.google_sheets.share_emails)
 file_parser = FileParser(max_file_size_mb=10, allowed_file_types={"txt", "doc", "docx", "pdf"})
 
 if cfg.llm.provider == "fireworks":
-    llm = FireworksLLM(cfg.llm.model_name, cfg.llm.prompt_template)
+    llm = FireworksLLM(cfg.llm.model_name, cfg.llm.prompt_template.ru)
 else:
     logging.error("Invalid LLM provider in the configuration file.")
     exit(1)
 
-google_sheets.set_sheet(config.google_sheets.sheet_name)
+try:
+    google_sheets.set_sheet(config.google_sheets.sheet_name)
+except:
+    google_sheets.create_sheet(config.google_sheets.sheet_name)
+
+import pandas as pd
+df = pd.DataFrame({
+	"Дата" : [],
+	"Регион" : [],
+	"Адрес" : [],
+	"Кадастровый номер" : [],
+	"Площадь ( ГА )" : [],
+	"Цена" : [],
+	"Под что участок (жилье, апарты, ижс, коммерция)" : [],
+	"Описание (документы, ври, рнс, и прочее)": []
+})
+
+google_sheets.import_dataframe(df, "участки")
+
 table_names = google_sheets.get_table_names()
 worksheet_name = cfg.google_sheets.worksheet_name
 
+logging.info(f"Table names: {table_names}")
+
 @bot.message_handler(commands=['tables'])
-def get_table_list(message):
-    """"""
+def get_table_list(message: str) -> None:
+    """
+    Get the list of tables in the Google Sheet
+    """
     table_names = google_sheets.get_table_names()
     if table_names:
         for table_name in table_names:

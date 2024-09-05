@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Any, List
 
@@ -50,17 +51,28 @@ class GoogleSheets:
         try:
             self.sheet = self.client.open(sheet_name)
         except:
+            logging.error(f"Sheet {sheet_name} not found")
             raise Exception(f"Sheet {sheet_name} not found")
+
+    def create_sheet(self, sheet_name: str):
+        try:
+            self.sheet = self.client.create(sheet_name)
+            logging.info(f"Sheet {sheet_name} created")
+        except:
+            logging.error(f"Sheet {sheet_name} not created")
+            raise Exception(f"Sheet {sheet_name} not created")
+        if self.share_emails:
+            for email in self.share_emails:
+                self.sheet.share(email, perm_type='user', role='writer')
 
     def get_table_names(self) -> List[str]:
         """ Get the names of the worksheets in the Google Sheet """
         return [worksheet.title for worksheet in self.sheet.worksheets()]
-    
+
     def get_header(self, table_name: str) -> List[str]:
         """ Get the headers of a specific worksheet """
         worksheet = self.sheet.worksheet(table_name)
-        df = pd.DataFrame(worksheet.get_all_records())
-        return df.columns.tolist()
+        return worksheet.row_values(1)
 
     def import_dataframe(self, df: pd.DataFrame, worksheet_name: str) -> None:
         """
@@ -93,4 +105,3 @@ class GoogleSheets:
         """
         worksheet = self.sheet.worksheet(worksheet_name)
         worksheet.append_row(row_data, value_input_option="USER_ENTERED")
-    

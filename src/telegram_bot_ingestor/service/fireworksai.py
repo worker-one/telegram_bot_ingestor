@@ -38,7 +38,7 @@ class FireworksLLM:
                     )
                 }
             ],
-            max_tokens=100,
+            max_tokens=800,
             temperature=0.2,
             presence_penalty=0,
             frequency_penalty=0,
