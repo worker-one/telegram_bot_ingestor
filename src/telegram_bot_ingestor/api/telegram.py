@@ -1,5 +1,6 @@
 import logging
 import os
+from datetime import datetime
 from io import BytesIO
 
 import telebot
@@ -48,15 +49,16 @@ except:
     google_sheets.create_sheet(config.google_sheets.sheet_name)
 
 import pandas as pd
+
 df = pd.DataFrame({
-	"Дата" : [],
-	"Регион" : [],
-	"Адрес" : [],
-	"Кадастровый номер" : [],
-	"Площадь ( ГА )" : [],
-	"Цена" : [],
-	"Под что участок (жилье, апарты, ижс, коммерция)" : [],
-	"Описание (документы, ври, рнс, и прочее)": []
+    "Дата": [],
+    "Регион": [],
+    "Адрес": [],
+    "Кадастровый номер": [],
+    "Площадь ( ГА )": [],
+    "Цена": [],
+    "Под что участок (жилье, апарты, ижс, коммерция)": [],
+    "Описание (документы, ври, рнс, и прочее)": []
 })
 
 google_sheets.import_dataframe(df, "участки")
@@ -65,6 +67,7 @@ table_names = google_sheets.get_table_names()
 worksheet_name = cfg.google_sheets.worksheet_name
 
 logging.info(f"Table names: {table_names}")
+
 
 @bot.message_handler(commands=['tables'])
 def get_table_list(message: str) -> None:
@@ -80,6 +83,7 @@ def get_table_list(message: str) -> None:
     else:
         bot.send_message(message.chat.id, "Таблиц не найдено")
 
+
 @bot.message_handler(content_types=['text', 'document', 'photo'])
 def process_user_input(message):
 
@@ -87,6 +91,7 @@ def process_user_input(message):
     file_info = None
     text_content = None
     file_content = None
+    json_data = None
 
     if message.content_type == 'text':
         text_content = message.text
@@ -113,34 +118,22 @@ def process_user_input(message):
         except Exception as e:
             bot.send_message(message.chat.id, f"Error extracting file content: {str(e)}")
 
-
     if message.content_type == 'photo':
+
+        text_content = message.caption
+
         # Get the highest resolution photo
         file = message.photo[-1]
         file_info = bot.get_file(message.photo[-1].file_id)
         file_name = file.file_id + ".jpg"
 
-    # If file_id was determined, get the file path
-    if file_info:
-        # Construct the full URL
-        file_url = BASE_URL + file_info.file_path
-
-        response = yandex_disk.upload_file(file_name, file_url)
-        if response.status_code == 202:
-            response_json = response.json()
-            bot.send_message(message.chat.id, f"Файл загружен: {response_json['href']}")
-        else:
-            bot.send_message(message.chat.id, f"Ошибка загрузки файла: {response.text}")
-
     if text_content or file_content:
         column_names = google_sheets.get_header(worksheet_name)
         response = llm.run(text_content=text_content, file_content=file_content, column_names=column_names)
-        print(response)
         try:
             json_data = extract_json(response)
         except:
             json_data = extract_json_list(response)
-
 
         if isinstance(json_data, dict):
             bot.send_message(message.chat.id, str(json_data))
@@ -154,6 +147,26 @@ def process_user_input(message):
         logging.info(f"User input text: {text_content}")
         logging.info(f"Document type: {message.content_type}")
 
+    # If file_id was determined, get the file path
+    if file_info:
+        # Construct the full URL
+        file_url = BASE_URL + file_info.file_path
+
+        folder_name = ""
+        if json_data:
+            folder_name = f"{json_data.get('Регион', '')}{json_data.get('Кадастровый номер', '')}".replace(' ', '-')
+        if len(folder_name) < 5:
+            folder_name = str(datetime.now().timestamp())
+
+        print(f"folder_name={folder_name}")
+        yandex_disk.create_folder(folder_name)
+        print(f"folder_name={folder_name}")
+        response = yandex_disk.upload_file(f"/{folder_name}/{file_name}", file_url)
+        if response.status_code == 202:
+            response_json = response.json()
+            bot.send_message(message.chat.id, f"Файл загружен: {response_json['href']}")
+        else:
+            bot.send_message(message.chat.id, f"Ошибка загрузки файла: {response.text}")
 
 def start_bot():
     logging.info(f"bot `{str(bot.get_me().username)}` has started")

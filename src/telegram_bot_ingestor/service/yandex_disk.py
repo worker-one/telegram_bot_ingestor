@@ -18,6 +18,21 @@ class YandexDisk:
                 raise ValueError(f"Environment variable YANDEX_EMAIL_ACCOUNT is not set")
             logging.info(f"Connecting to yandex disk {self.email}")
 
+    def create_folder(self, folder_name: str):
+        base_url = "https://cloud-api.yandex.net/v1/disk/resources"
+        params = {
+            "path": folder_name
+        }
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/hal+json",
+            "Authorization": f"OAuth {self.token}"
+        }
+
+        response = requests.put(base_url, headers=headers, params=params)
+
+        return response
+
     def upload_file(self, file_path: str, url: str):
       base_url = "https://cloud-api.yandex.net/v1/disk/resources/upload"
       params = {

@@ -4,6 +4,7 @@ google_sheets:
   worksheet_name: "участки"
   share_emails:
     - "konst.verner@gmail.com"
+    - "olegovichaleksandr8@gmail.com"
 llm:
   prompt_template:
     en: "You are given column names of a table, `text_content` and optionally `file_content`.
