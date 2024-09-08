@@ -18,6 +18,8 @@ jobs:
 
       - name: Create .env file
         run: |
+          echo "YANDEX_API_TOKEN=${{ vars.BOT_TOKEN }}" >> .env
+          echo "YANDEX_API_TOKEN=${{ env.BOT_TOKEN }}" >> .env
           echo "BOT_TOKEN=${{ vars.BOT_TOKEN }}" >> .env
           echo "DATABASE_URL=${{ vars.DATABASE_URL }}" >> .env
           echo "FIREWORKS_API_KEY=${{ vars.FIREWORKS_API_KEY }}" >> .env
