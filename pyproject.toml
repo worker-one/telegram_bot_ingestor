@@ -27,6 +27,7 @@ dependencies = [
     "oauth2client",
     "sqlalchemy==1.4.25",
     "psycopg2-binary",
+    "pandas",
     "python-dotenv",
     "fix-busted-json",
     "python-docx==1.1.2",
