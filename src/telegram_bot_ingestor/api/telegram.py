@@ -144,9 +144,7 @@ def process_user_input(message):
         if len(folder_name) < 5:
             folder_name = str(datetime.now().timestamp())
 
-        print(f"folder_name={folder_name}")
         folder_name = yandex_disk.create_folder(folder_name)
-        print(f"folder_name={folder_name}")
         response = yandex_disk.upload_file(f"/{folder_name}/{file_name}", file_url)
         if response.status_code == 202:
             response_json = response.json()
@@ -156,4 +154,4 @@ def process_user_input(message):
 
 def start_bot():
     logging.info(f"bot `{str(bot.get_me().username)}` has started")
-    bot.polling()
+    bot.infinity_polling()
