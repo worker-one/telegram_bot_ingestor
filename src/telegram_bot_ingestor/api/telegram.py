@@ -48,21 +48,6 @@ try:
 except:
     google_sheets.create_sheet(config.google_sheets.sheet_name)
 
-import pandas as pd
-
-df = pd.DataFrame({
-    "Дата": [],
-    "Регион": [],
-    "Адрес": [],
-    "Кадастровый номер": [],
-    "Площадь ( ГА )": [],
-    "Цена": [],
-    "Под что участок (жилье, апарты, ижс, коммерция)": [],
-    "Описание (документы, ври, рнс, и прочее)": []
-})
-
-google_sheets.import_dataframe(df, "участки")
-
 table_names = google_sheets.get_table_names()
 worksheet_name = cfg.google_sheets.worksheet_name
 
@@ -149,6 +134,7 @@ def process_user_input(message):
 
     # If file_id was determined, get the file path
     if file_info:
+
         # Construct the full URL
         file_url = BASE_URL + file_info.file_path
 
