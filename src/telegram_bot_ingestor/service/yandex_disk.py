@@ -1,6 +1,6 @@
 import logging
 import os
-
+import re
 import requests
 
 
@@ -18,8 +18,14 @@ class YandexDisk:
                 raise ValueError(f"Environment variable YANDEX_EMAIL_ACCOUNT is not set")
             logging.info(f"Connecting to yandex disk {self.email}")
 
+    def _prepare_folder_name(self, input_string: str) -> str:
+        result = re.sub(r'[^а-яA-Яa-zA-Z0-9]', '-', input_string)
+        result = result.replace('--', '-')
+        return result
+
     def create_folder(self, folder_name: str):
         base_url = "https://cloud-api.yandex.net/v1/disk/resources"
+        folder_name = self._prepare_folder_name(folder_name)
         params = {
             "path": folder_name
         }
@@ -31,7 +37,7 @@ class YandexDisk:
 
         response = requests.put(base_url, headers=headers, params=params)
 
-        return response
+        return folder_name
 
     def upload_file(self, file_path: str, url: str):
       base_url = "https://cloud-api.yandex.net/v1/disk/resources/upload"
