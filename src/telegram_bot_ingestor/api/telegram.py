@@ -14,33 +14,34 @@ from telegram_bot_ingestor.service.google_sheets import GoogleSheets
 from telegram_bot_ingestor.service.utils import extract_json, extract_json_list
 from telegram_bot_ingestor.service.yandex_disk import YandexDisk
 
-config = OmegaConf.load("src/telegram_bot_ingestor/conf/config.yaml")
+
+logger = logging.getLogger(__name__)
 
 load_dotenv(find_dotenv(usecwd=True))  # Load environment variables from .env file
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 YANDEX_API_TOKEN = os.getenv("YANDEX_API_TOKEN")
 
 if BOT_TOKEN is None:
-    logging.error("BOT_TOKEN is not set in the environment variables.")
+    logger.error("BOT_TOKEN is not set in the environment variables.")
     exit(1)
 
 if YANDEX_API_TOKEN is None:
-    logging.error("YANDEX_API_TOKEN is not set in the environment variables.")
+    logger.error("YANDEX_API_TOKEN is not set in the environment variables.")
     exit(1)
 
 BASE_URL = f"https://api.telegram.org/file/bot{BOT_TOKEN}/"
 
-cfg = OmegaConf.load("./src/telegram_bot_ingestor/conf/config.yaml")
+config = OmegaConf.load("./src/telegram_bot_ingestor/conf/config.yaml")
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode=None)
 
 yandex_disk = YandexDisk(YANDEX_API_TOKEN)
-google_sheets = GoogleSheets(share_emails=cfg.google_sheets.share_emails)
+google_sheets = GoogleSheets(share_emails=config.google_sheets.share_emails)
 file_parser = FileParser(max_file_size_mb=10, allowed_file_types={"txt", "doc", "docx", "pdf"})
 
-if cfg.llm.provider == "fireworks":
-    llm = FireworksLLM(cfg.llm.model_name, cfg.llm.prompt_template.ru)
+if config.llm.provider == "fireworks":
+    llm = FireworksLLM(config.llm.model_name, config.llm.prompt_template.ru)
 else:
-    logging.error("Invalid LLM provider in the configuration file.")
+    logger.error("Invalid LLM provider in the configuration file.")
     exit(1)
 
 try:
@@ -49,9 +50,9 @@ except:
     google_sheets.create_sheet(config.google_sheets.sheet_name)
 
 table_names = google_sheets.get_table_names()
-worksheet_name = cfg.google_sheets.worksheet_name
+worksheet_name = config.google_sheets.worksheet_name
 
-logging.info(f"Table names: {table_names}")
+logger.info(f"Table names: {table_names}")
 
 
 @bot.message_handler(commands=['tables'])
@@ -129,8 +130,8 @@ def process_user_input(message):
             for row in json_data:
                 google_sheets.add_row(worksheet_name, list(row.values()))
 
-        logging.info(f"User input text: {text_content}")
-        logging.info(f"Document type: {message.content_type}")
+        logger.info(f"User input text: {text_content}")
+        logger.info(f"Document type: {message.content_type}")
 
     # If file_id was determined, get the file path
     if file_info:
@@ -147,11 +148,10 @@ def process_user_input(message):
         folder_name = yandex_disk.create_folder(folder_name)
         response = yandex_disk.upload_file(f"/{folder_name}/{file_name}", file_url)
         if response.status_code == 202:
-            response_json = response.json()
-            bot.send_message(message.chat.id, f"Файл загружен: {response_json['href']}")
+            bot.send_message(message.chat.id, f"Файл {file_name} загружен в папку: {folder_name}")
         else:
             bot.send_message(message.chat.id, f"Ошибка загрузки файла: {response.text}")
 
 def start_bot():
-    logging.info(f"bot `{str(bot.get_me().username)}` has started")
+    logger.info(f"bot `{str(bot.get_me().username)}` has started")
     bot.infinity_polling()

@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, List
+from typing import Union
 
 import gspread
 import pandas as pd
@@ -34,7 +34,7 @@ def create_keyfile_dict() -> dict[str, str]:
 
 
 class GoogleSheets:
-    def __init__(self, share_emails: List[str] = None):
+    def __init__(self, share_emails: list[str] = None):
         self.keyfile_dict = create_keyfile_dict()
         self.scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
         self.creds = ServiceAccountCredentials.from_json_keyfile_dict(keyfile_dict=self.keyfile_dict, scopes=self.scope)
@@ -65,11 +65,11 @@ class GoogleSheets:
             for email in self.share_emails:
                 self.sheet.share(email, perm_type='user', role='writer')
 
-    def get_table_names(self) -> List[str]:
+    def get_table_names(self) -> list[str]:
         """ Get the names of the worksheets in the Google Sheet """
         return [worksheet.title for worksheet in self.sheet.worksheets()]
 
-    def get_header(self, table_name: str) -> List[str]:
+    def get_header(self, table_name: str) -> list[str]:
         """ Get the headers of a specific worksheet """
         worksheet = self.sheet.worksheet(table_name)
         return worksheet.row_values(1)
@@ -96,7 +96,7 @@ class GoogleSheets:
         df = pd.DataFrame(worksheet.get_all_records())
         return df
 
-    def add_row(self, worksheet_name: str, row_data: List[Any]) -> None:
+    def add_row(self, worksheet_name: str, row_data: list[Union[str, int, float, bool]]) -> None:
         """
         Add a row to the specified worksheet in the Google Sheet
 
@@ -104,4 +104,4 @@ class GoogleSheets:
         :param row_data: The data for the new row as a list
         """
         worksheet = self.sheet.worksheet(worksheet_name)
-        worksheet.append_row(row_data, value_input_option="USER_ENTERED")
+        worksheet.append_row([str(item) for item in row_data], value_input_option="USER_ENTERED")

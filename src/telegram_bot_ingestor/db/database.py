@@ -1,30 +1,32 @@
 import datetime
 import logging
-import logging.config
 import os
 
 from dotenv import load_dotenv, find_dotenv
-from omegaconf import OmegaConf
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from .models import Base, Message, User
 
-# Load logging configuration with OmegaConf
-logging_config = OmegaConf.to_container(OmegaConf.load("./src/telegram_bot_ingestor/conf/logging_config.yaml"), resolve=True)
 
-# Apply the logging configuration
-logging.config.dictConfig(logging_config)
-
-# Configure logging
 logger = logging.getLogger(__name__)
 
 load_dotenv(find_dotenv(usecwd=True))
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-if DATABASE_URL is None:
-	logger.error("DATABASE_URL is not set in the environment variables.")
-	exit(1)
+# Retrieve environment variables
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
+DB_NAME = os.getenv("DB_NAME")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+
+# Check if any of the required environment variables are not set
+if not all([DB_HOST, DB_NAME, DB_USER, DB_PASSWORD]):
+    logger.error("One or more database environment variables are not set.")
+    exit(1)
+
+# Construct the database URL
+DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?sslmode=require"
 
 engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(engine)

@@ -54,3 +54,26 @@ class YandexDisk:
       response = requests.post(base_url, headers=headers, params=params)
 
       return response
+
+    def publish_file(self, file_path: str) -> str:
+        base_url = "https://cloud-api.yandex.net/v1/disk/resources/publish"
+        params = {
+            "path": file_path,
+            "allow_address_access": True
+        }
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/hal+json",
+            "Authorization": f"OAuth {self.token}"}
+        
+        # Publish file
+        response = requests.put(base_url, headers=headers, params=params)
+
+        # Get link
+        base_url = "https://cloud-api.yandex.net/v1/disk/public/resources/download"
+        params = {
+            "public_key": response.json()['href']
+        }
+        response = requests.get(base_url, headers=headers, params=params)
+
+        return response.json()['href']
