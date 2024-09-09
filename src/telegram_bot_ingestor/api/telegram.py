@@ -16,6 +16,7 @@ from telegram_bot_ingestor.service.yandex_disk import YandexDisk
 
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 load_dotenv(find_dotenv(usecwd=True))  # Load environment variables from .env file
 BOT_TOKEN = os.getenv("BOT_TOKEN")
