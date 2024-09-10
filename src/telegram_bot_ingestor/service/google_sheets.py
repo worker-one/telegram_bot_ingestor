@@ -104,4 +104,10 @@ class GoogleSheets:
         :param row_data: The data for the new row as a list
         """
         worksheet = self.sheet.worksheet(worksheet_name)
-        worksheet.append_row([str(item) for item in row_data], value_input_option="USER_ENTERED")
+        formated_row = []
+        for item in row_data
+            if isinstance(item, list):
+                formated_row.append(', '.join(item))
+            else:
+                formated_row.append(str(item))
+        worksheet.append_row(formated_row, value_input_option="USER_ENTERED")
