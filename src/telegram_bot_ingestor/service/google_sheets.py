@@ -105,7 +105,7 @@ class GoogleSheets:
         """
         worksheet = self.sheet.worksheet(worksheet_name)
         formated_row = []
-        for item in row_data
+        for item in row_data:
             if isinstance(item, list):
                 formated_row.append(', '.join(item))
             else:
