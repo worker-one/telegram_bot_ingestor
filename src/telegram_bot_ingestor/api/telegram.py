@@ -14,9 +14,11 @@ from telegram_bot_ingestor.service.google_sheets import GoogleSheets
 from telegram_bot_ingestor.service.utils import extract_json, extract_json_list
 from telegram_bot_ingestor.service.yandex_disk import YandexDisk
 
-
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s - %(extra)s'
+)
 
 load_dotenv(find_dotenv(usecwd=True))  # Load environment variables from .env file
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -80,6 +82,8 @@ def process_user_input(message):
     file_content = None
     json_data = None
 
+    print(message.content_type)
+
     if message.content_type == 'text':
         text_content = message.text
 
@@ -103,7 +107,9 @@ def process_user_input(message):
             file_content = file_parser.extract_content(upload_file)
             bot.send_message(message.chat.id, f"File content: {file_content}")
         except Exception as e:
-            bot.send_message(message.chat.id, f"Error extracting file content: {str(e)}")
+            bot.send_message(
+                message.chat.id,
+                f"Информация из файла `{file_name}` не была извлечена: {str(e)}")
 
     if message.content_type == 'photo':
 
@@ -140,11 +146,11 @@ def process_user_input(message):
         # Construct the full URL
         file_url = BASE_URL + file_info.file_path
 
-        folder_name = ""
+        # name folder as current datetime in format: 2021-09-01-12-00-00
+        folder_name = datetime.now().strftime("%Y-%m-%d-%H-%M")
         if json_data:
-            folder_name = f"{json_data.get('Регион', '')}{json_data.get('Кадастровый номер', '')}".replace(' ', '-')
-        if len(folder_name) < 5:
-            folder_name = str(datetime.now().timestamp())
+            if json_data.get('Регион', '') and json_data.get('Кадастровый номер', ''):
+                folder_name = f"{json_data.get('Регион', '')}{json_data.get('Кадастровый номер', '')}".replace(' ', '-')
 
         folder_name = yandex_disk.create_folder(folder_name)
         response = yandex_disk.upload_file(f"/{folder_name}/{file_name}", file_url)
@@ -153,6 +159,8 @@ def process_user_input(message):
         else:
             bot.send_message(message.chat.id, f"Ошибка загрузки файла: {response.text}")
 
+
 def start_bot():
     logger.info(f"bot `{str(bot.get_me().username)}` has started")
     bot.infinity_polling()
+
