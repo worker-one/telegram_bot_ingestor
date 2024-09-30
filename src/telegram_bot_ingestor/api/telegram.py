@@ -105,7 +105,7 @@ def process_user_input(message):
             )
 
             file_content = file_parser.extract_content(upload_file)
-            bot.send_message(message.chat.id, f"File content: {file_content}")
+            #bot.send_message(message.chat.id, f"File content: {file_content}")
         except Exception as e:
             bot.send_message(
                 message.chat.id,
