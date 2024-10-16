@@ -7,20 +7,42 @@ google_sheets:
     - "olegovichaleksandr8@gmail.com"
 llm:
   prompt_template:
-    en: "You are given column names of a table, `text_content` and optionally `file_content`.
-    Using information from `text_content` and `file_content` complete column names and return a valid json document.
-    If the information is not found, use the value `null`.
-    No comments and explanation are allowed. As nan value use `null`.
-    column names {column_names}
-    text_content {text_content}
-    file_content {file_content}"
-    ru: "Вам даны имена столбцов таблицы, `text_content` и, опционально, `file_content`.
-    Используя информацию из `text_content` и `file_content`, заполните имена столбцов и верните допустимый документ JSON.
-    Если искомой информации нет, используй значение `null`. Кадастровый номер состоит из 12 цифр, которые показывают,
-    где находится объект недвижимости: 78:36:ХХХХХХХ:ХХХХ
-    Комментарии и пояснения не допускаются. В качестве значения nan используйте `null`.
-    имена столбцов {column_names}
-    text_content {text_content}
-    file_content {file_content}"
+    en: |
+      You are given column names of a table, `text_content` and optionally `file_content`.
+      Using information from `text_content` and `file_content` complete column names and return a valid json document.
+      If the information is not found, use the value `null`.
+      No comments and explanation are allowed. As nan value use `null`.
+      column names {column_names}
+      text_content {text_content}
+      file_content {file_content}
+    ru: |
+      "Вам даны имена столбцов таблицы, `text_content` и, опционально, `file_content`.
+      Используя информацию из `text_content` и `file_content`, заполните имена столбцов и верните допустимый документ JSON.
+      Если искомой информации нет, используй значение `null`.
+      Комментарии и пояснения не допускаются. В качестве значения nan используйте `null`.
+      имена столбцов {column_names}
+      Дата - сегодняшняя дата;   Регион- коротко название региона;  Адрес - адрес;   КН- кадастровый номер;  Площадь ( ГА ) - площадь;  Цена - стоимость (цифрами);  Под что участок (жилье, апарты, ижс, коммерция) - Под что подходит участок;  "Описание (документы, ври, рнс, и прочее)
+      Физ. или Юр. лицо?" - описание;  Выход на собственника - прямой или через агента. ячейки должны располагаться на первой строке горизонтально. Далее я буду присылать информацию и её нужно будет вносить в эту таблицу. Вот примеры: Пример номер один: входная информация: Ростов-на-Дону, Ленинский район, ул. Б. Садовая, 1 и ул. Сиверса, 4б
+      2,04 га 
+      61:44:051009:13
+      61:44:051009:8
+      Видовые характеристики: историческая архитектура города, пригородный и главный ж/д 
+      вокзалы, смотровые площадки
+      Энергоресурсы: 
+      Энергоснабжение – 3,6 МВт (установлено 3(три) трансформатора по 1000 Ква каждый и 
+      1(один) трансформатор на 630 Ква)
+      Газоснабжение - 10700 нм3/ч
+      Водоснабжение - общее кол-во 306,6 тыс м3/год , два ввода (1-й ввод – 14м3/ч, 122,64 
+      тыс.м3/год; 2-й ввод – 21 м3/ч, 183,96 тыс.м3/год)
+      Водоотведение (городской коллектор) - 306,6 тыс м3/год
+      Стоимость: 1 250 000 000. Вот как нужно вставить информацию в таблицу: 10.08.2024  Ростов  Ростов-на-Дону, Ленинский район, ул. Б. Садовая, 1 и ул. Сиверса, 4б  "61:44:051009:13
+      61:44:051009:8"  2,04 га   1 250 млн  МЖС  "Энергоснабжение – 3,6 МВт (установлено 3(три) трансформатора по 1000 Ква каждый и 
+      1(один) трансформатор на 630 Ква)
+      Газоснабжение - 10700 нм3/ч
+      Водоснабжение - общее кол-во 306,6 тыс м3/год , два ввода (1-й ввод – 14м3/ч, 122,64 
+      тыс.м3/год; 2-й ввод – 21 м3/ч, 183,96 тыс.м3/год)
+      Водоотведение (городской коллектор) - 306,6 тыс м3/год
+      text_content {text_content}
+      file_content {file_content}
   provider: "fireworks"
   model_name: "accounts/fireworks/models/llama-v3-70b-instruct"
